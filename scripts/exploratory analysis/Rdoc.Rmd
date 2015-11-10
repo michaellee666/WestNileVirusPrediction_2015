@@ -1,0 +1,111 @@
+---
+title: "WestNileVirus Group"
+author: "Haris Jabbar"
+date: "05/09/2015"
+output: html_document
+---
+
+```{r,echo=FALSE}
+library(ggmap)
+setwd("~/datamining/github_dmproj/data_mining_lab/input_data")
+traindata=read.csv("train.csv")
+weatherdata=read.csv("weather.csv")
+spraydata=read.csv("spray.csv")
+chicago_map=qmap(location="Chicago",source="google",maptype="terrain")
+bbox=c(min(spraydata$Longitude),min(spraydata$Latitude),max(spraydata$Longitude),max(spraydata$Latitude))
+boundingbox_map=qmap(location="Chicago",source="google",maptype="terrain")
+Add=unique(traindata[,c(2,8,9)])
+
+MosquitoCountsByDate=aggregate(cbind(NumMosquitos,WnvPresent)~Date,data=traindata,sum)
+MosquitoCountsByAddress_Species=aggregate(cbind(NumMosquitos,WnvPresent)~Address+Species,data=traindata,sum)
+MosquitoCountsByLatLong=merge(MosquitoCountsByAddress_Species,Add)
+MosquitoCountsVsWeather=merge(weatherdata,MosquitoCountsByDate)
+```
+
+# Habitation area of different species
+
+The Habitation area of difference species is tabulated in the following table (only first 6 records are displayed)
+
+```{r,echo=FALSE}
+head(MosquitoCountsByLatLong)
+```
+
+# Cluster the Satellite Traps
+
+The following code separates the central and satellite traps by using the length of `Trap` variable in training data.
+
+```{r}
+traps_central=traindata[nchar(as.character(traindata$Trap))!=5,]
+traps_satellite=traindata[nchar(as.character(traindata$Trap))==5,]
+head(traps_satellite)
+```
+
+The plot of these traps is shown in the map below
+
+```{r}
+chicago_map+geom_point(aes(y=Latitude,x=Longitude),data=traps_central, alpha=0.5,color="darkred",size=5)+
+  geom_point(aes(y=Latitude,x=Longitude),data=traps_satellite, alpha=0.5,color="yellow",size=5)
+```
+
+# Plot infected counts over all mosquito species over time
+
+The infected counts of all mosquito species over time are calculated as follows
+
+```{r}
+MosquitoCountsBySpecies_Date=aggregate(cbind(NumMosquitos,WnvPresent)~Species+Date,data=traindata,sum)
+head(MosquitoCountsBySpecies_Date)
+```
+
+The plot for Species CULEX RESTUANS is shown below
+
+```{r,echo=FALSE}
+ggplot(data=subset(MosquitoCountsBySpecies_Date,Species=="CULEX RESTUANS"))+geom_line(aes(x=as.Date(Date),y=WnvPresent))
+```
+
+# Plot weather data and various attributes over all years into a single chart to see correlations between attributes
+
+# Plot weather data for two stations over all years and see if they differ a lot. 
+
+Taking Station 1 as base station, we check the deviation of Tavg of Station 2 from base station. The plot shows that there are few outliers (difference greater than 10 degrees F).
+
+```{r}
+TempDiff=as.numeric(subset(weatherdata,Station==1)[,5])-as.numeric(subset(weatherdata,Station==2)[,5])
+qplot(TempDiff,binwidth=1)
+```
+
+Removing the outliers, station 2 is warmer than station 1 by 1.236 degrees on average
+
+```{r}
+qplot(TempDiff[TempDiff<10])
+mean(TempDiff[TempDiff<10])
+sqrt(var(TempDiff[TempDiff<10]))
+```
+
+# Calculate the likelihood of a species to carry the WNV
+
+Aggregating the Mosquito counts by species and computing the probability, we get the following :
+
+```{r}
+MosquitoCountsBySpecies=aggregate(cbind(NumMosquitos,WnvPresent)~Species,data=traindata,sum)
+MosquitoCountsBySpecies$Probability=(MosquitoCountsBySpecies$WnvPresent/MosquitoCountsBySpecies$NumMosquitos)*100
+MosquitoCountsBySpecies
+```
+
+Thus CULEX PIPIENS is the most common specie carrying the WNV.
+
+# Mosquitoes do not like wind, how does this correlate?
+
+Plotting the Mosquito counts vs the average wind speed, we get the following plot
+
+```{r}
+qplot(as.numeric(MosquitoCountsVsWeather$AvgSpeed),MosquitoCountsVsWeather$NumMosquitos,main="Mosquito Count Vs Average Wind Speed",xlab="Average Speed",ylab="Mosquito Counts")
+```
+
+It can be seen that mosquitos do not like speeds between 50 and 100
+
+# What influence do mild winters have?
+
+The data is collected from Spring to Fall, thus winters is not included in the dataset.
+
+
+
