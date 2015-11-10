@@ -7,13 +7,13 @@ output: html_document
 
 ```{r,echo=FALSE}
 library(ggmap)
-setwd("~/datamining/github_dmproj/data_mining_lab/input_data")
+setwd("~/Dropbox/CSE/Summer 2015/Praktikum Data Mining/dataset/")
 traindata=read.csv("train.csv")
 weatherdata=read.csv("weather.csv")
 spraydata=read.csv("spray.csv")
 chicago_map=qmap(location="Chicago",source="google",maptype="terrain")
 bbox=c(min(spraydata$Longitude),min(spraydata$Latitude),max(spraydata$Longitude),max(spraydata$Latitude))
-boundingbox_map=qmap(location="Chicago",source="google",maptype="terrain")
+boundingbox_map=qmap(location=bbox,source="google",maptype="terrain")
 Add=unique(traindata[,c(2,8,9)])
 
 MosquitoCountsByDate=aggregate(cbind(NumMosquitos,WnvPresent)~Date,data=traindata,sum)
@@ -52,14 +52,14 @@ chicago_map+geom_point(aes(y=Latitude,x=Longitude),data=traps_central, alpha=0.5
 The infected counts of all mosquito species over time are calculated as follows
 
 ```{r}
-MosquitoCountsBySpecies_Date=aggregate(cbind(NumMosquitos,WnvPresent)~Species+Date,data=traindata,sum)
+MosquitoCountsBySpecies_Date=aggregate(cbind(NumMosquitos,WnvPresent)~Date,data=traindata,sum)
 head(MosquitoCountsBySpecies_Date)
 ```
 
 The plot for Species CULEX RESTUANS is shown below
 
 ```{r,echo=FALSE}
-ggplot(data=subset(MosquitoCountsBySpecies_Date,Species=="CULEX RESTUANS"))+geom_line(aes(x=as.Date(Date),y=WnvPresent))
+  ggplot(data=subset(MosquitoCountsBySpecies_Date,Species=="CULEX RESTUANS"))+geom_line(aes(x=as.Date(Date),y=WnvPresent))
 ```
 
 # Plot weather data and various attributes over all years into a single chart to see correlations between attributes
@@ -69,8 +69,8 @@ ggplot(data=subset(MosquitoCountsBySpecies_Date,Species=="CULEX RESTUANS"))+geom
 Taking Station 1 as base station, we check the deviation of Tavg of Station 2 from base station. The plot shows that there are few outliers (difference greater than 10 degrees F).
 
 ```{r}
-TempDiff=as.numeric(subset(weatherdata,Station==1)[,5])-as.numeric(subset(weatherdata,Station==2)[,5])
-qplot(TempDiff,binwidth=1)
+TempDiff=as.numeric(subset(weatherdata,Station==2)[,5])-as.numeric(subset(weatherdata,Station==1)[,5])
+qplot(TempDiff,binwidth=1,xlab="Temperature Difference of Station 2 from Station 1",ylab="No of Days")
 ```
 
 Removing the outliers, station 2 is warmer than station 1 by 1.236 degrees on average
@@ -106,6 +106,14 @@ It can be seen that mosquitos do not like speeds between 50 and 100
 # What influence do mild winters have?
 
 The data is collected from Spring to Fall, thus winters is not included in the dataset.
+
+# Information from Satellite Traps
+
+The subset of traindata that has only satellite traps is given as :
+
+```{r}
+traps_satellite=traindata[nchar(as.character(traindata$Trap))==5,]
+```
 
 
 
